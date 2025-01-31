@@ -1,0 +1,141 @@
+-- Create Customers Table
+CREATE TABLE Customers (
+    customer_id INT IDENTITY(1,1) PRIMARY KEY,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    email VARCHAR(100) UNIQUE,
+    phone_number VARCHAR(20),
+    address VARCHAR(255),
+    date_joined DATETIME DEFAULT GETDATE()
+);
+
+-- Create Products Table
+CREATE TABLE Products (
+    product_id INT IDENTITY(1,1) PRIMARY KEY,
+    name VARCHAR(100),
+    description TEXT,
+    price DECIMAL(10, 2),
+    stock_quantity INT
+);
+
+-- Create Orders Table
+CREATE TABLE Orders (
+    order_id INT IDENTITY(1,1) PRIMARY KEY,
+    customer_id INT,
+    order_date DATETIME DEFAULT GETDATE(),
+    total_amount DECIMAL(10, 2),
+    status VARCHAR(50),
+    FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
+);
+
+-- Create OrderDetails Table
+CREATE TABLE OrderDetails (
+    order_detail_id INT IDENTITY(1,1) PRIMARY KEY,
+    order_id INT,
+    product_id INT,
+    quantity INT,
+    price DECIMAL(10, 2),
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id),
+    FOREIGN KEY (product_id) REFERENCES Products(product_id)
+);
+
+-- Create Payments Table
+CREATE TABLE Payments (
+    payment_id INT IDENTITY(1,1) PRIMARY KEY,
+    order_id INT,
+    payment_date DATETIME DEFAULT GETDATE(),
+    amount DECIMAL(10, 2),
+    payment_method VARCHAR(50),
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id)
+);
+
+-- Sample Query: Add Customers
+INSERT INTO Customers (first_name, last_name, email, phone_number, address)
+VALUES 
+('Alisa', 'Smith', 'alisa@example.com', '123-456-7890', '123 Main St, City, Country'),
+('John', 'Doe', 'john.doe@example.com', '987-654-3210', '456 Elm St, City, Country'),
+('Sarah', 'Johnson', 'sarah.johnson@example.com', '555-111-2345', '789 Oak St, City, Country'),
+('James', 'Williams', 'james.williams@example.com', '333-444-5555', '101 Pine St, City, Country');
+
+-- Sample Query: Add Products
+INSERT INTO Products (name, description, price, stock_quantity)
+VALUES 
+('Wireless Headphones', 'Noise-cancelling wireless headphones', 99.99, 150),
+('Smartphone', 'Latest model with 5G support', 799.99, 200),
+('Laptop', '15-inch laptop with powerful specs', 1199.99, 50),
+('Smartwatch', 'Fitness tracker and smartwatch', 199.99, 100);
+
+-- Sample Query: Place Orders for Multiple Customers
+-- Order for Alisa
+INSERT INTO Orders (customer_id, total_amount, status)
+VALUES (1, 199.98, 'Pending');
+DECLARE @last_order_id_1 INT = SCOPE_IDENTITY();
+INSERT INTO OrderDetails (order_id, product_id, quantity, price)
+VALUES (@last_order_id_1, 1, 2, 99.99);  -- 2 Wireless Headphones
+
+-- Order for John
+INSERT INTO Orders (customer_id, total_amount, status)
+VALUES (2, 799.99, 'Pending');
+DECLARE @last_order_id_2 INT = SCOPE_IDENTITY();
+INSERT INTO OrderDetails (order_id, product_id, quantity, price)
+VALUES (@last_order_id_2, 2, 1, 799.99);  -- 1 Smartphone
+
+-- Order for Sarah
+INSERT INTO Orders (customer_id, total_amount, status)
+VALUES (3, 1199.99, 'Pending');
+DECLARE @last_order_id_3 INT = SCOPE_IDENTITY();
+INSERT INTO OrderDetails (order_id, product_id, quantity, price)
+VALUES (@last_order_id_3, 3, 1, 1199.99);  -- 1 Laptop
+
+-- Order for James
+INSERT INTO Orders (customer_id, total_amount, status)
+VALUES (4, 399.98, 'Pending');
+DECLARE @last_order_id_4 INT = SCOPE_IDENTITY();
+INSERT INTO OrderDetails (order_id, product_id, quantity, price)
+VALUES (@last_order_id_4, 4, 2, 199.99);  -- 2 Smartwatches
+
+-- Update Stock After Orders
+UPDATE Products
+SET stock_quantity = stock_quantity - 2
+WHERE product_id = 1;  -- Wireless Headphones for Alisa
+
+UPDATE Products
+SET stock_quantity = stock_quantity - 1
+WHERE product_id = 2;  -- Smartphone for John
+
+UPDATE Products
+SET stock_quantity = stock_quantity - 1
+WHERE product_id = 3;  -- Laptop for Sarah
+
+UPDATE Products
+SET stock_quantity = stock_quantity - 2
+WHERE product_id = 4;  -- Smartwatches for James
+
+-- Sample Query: Process Payments
+INSERT INTO Payments (order_id, amount, payment_method)
+VALUES (1, 199.98, 'Credit Card'),  -- Payment for Alisa's order
+       (2, 799.99, 'PayPal'),      -- Payment for John's order
+       (3, 1199.99, 'Credit Card'), -- Payment for Sarah's order
+       (4, 399.98, 'Debit Card');   -- Payment for James's order
+
+-- Sample Query: Get Order History for a Specific Customer (e.g., Alisa)
+SELECT o.order_id, o.order_date, o.total_amount, o.status
+FROM Orders o
+JOIN Customers c ON o.customer_id = c.customer_id
+WHERE c.customer_id = 1
+ORDER BY o.order_date DESC;
+
+-- Sample Query: Get Details of Products in a Specific Order (e.g., Alisa's order)
+SELECT od.order_id, p.name, od.quantity, od.price
+FROM OrderDetails od
+JOIN Products p ON od.product_id = p.product_id
+WHERE od.order_id = 1;
+SELECT 
+    o.order_id, 
+    o.order_date, 
+    o.total_amount, 
+    o.status, 
+    c.first_name + ' ' + c.last_name AS customer_name
+FROM Orders o
+JOIN Customers c ON o.customer_id = c.customer_id
+ORDER BY o.order_date DESC;
